@@ -550,22 +550,20 @@ const PROJECTS = [
 let activeFilters = { starred: false, hideDimmed: false };
 let currentModalId = null;
 
-const BIN_ID = '69f3c423856a68218990c880';
-const API_KEY = '$2a$10$lhiZzja8rTjqXSiNFJvDgObeZO884oA7guRSQSvEQuColXOaBYP9S';
-const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+const FB_URL = 'https://uhg-intern-projects-default-rtdb.firebaseio.com/state.json';
 
 let _state = { starred: {}, dimmed: {} };
 let _saveTimer = null;
 
 async function loadState() {
   try {
-    const res = await fetch(BIN_URL + '/latest', {
-      headers: { 'X-Access-Key': API_KEY }
-    });
+    const res = await fetch(FB_URL);
     const data = await res.json();
-    _state = data.record || { starred: {}, dimmed: {} };
+    _state = (data && typeof data === 'object') ? data : { starred: {}, dimmed: {} };
+    if(!_state.starred) _state.starred = {};
+    if(!_state.dimmed) _state.dimmed = {};
   } catch(e) {
-    console.warn('Could not load state from JSONBin, using empty state.', e);
+    console.warn('Could not load state from Firebase, using empty state.', e);
     _state = { starred: {}, dimmed: {} };
   }
   renderGrid();
@@ -583,12 +581,12 @@ function saveState(state) {
     const banner = document.getElementById('sync-banner');
     if(banner) banner.style.display = 'block';
     try {
-      await fetch(BIN_URL, {
+      await fetch(FB_URL, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Access-Key': API_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state)
       });
-    } catch(e) { console.warn('Could not save state to JSONBin.', e); }
+    } catch(e) { console.warn('Could not save state to Firebase.', e); }
     if(banner) banner.style.display = 'none';
   }, 600);
 }
