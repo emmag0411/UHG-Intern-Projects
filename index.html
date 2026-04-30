@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intern Project Browser — April 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f1ea;
+    --ink: #1a1714;
+    --muted: #7a7570;
+    --accent: #c45c2a;
+    --accent-light: #f0ddd3;
+    --star: #d4a017;
+    --star-bg: #fdf6e3;
+    --dim-bg: #eeece8;
+    --border: #ddd8d0;
+    --card-bg: #ffffff;
+    --tag-bg: #ede9e2;
+    --tag-text: #5a5550;
+    --green: #2a7a4a;
+    --green-bg: #e8f5ee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 2.5rem 2rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.15;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    position: relative;
+  }
+  header h1 em { color: var(--accent); font-style: italic; }
+  header p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #a09890;
+    font-weight: 300;
+    position: relative;
+  }
+  .header-stats {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1.5rem;
+    position: relative;
+  }
+  .stat { font-size: 0.8rem; color: #a09890; }
+  .stat strong { display: block; font-size: 1.4rem; font-weight: 400; color: var(--cream); font-family: 'DM Serif Display', serif; }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .controls input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    background: var(--cream);
+    color: var(--ink);
+  }
+  .controls input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .controls select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    background: var(--cream);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    background: var(--cream);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .filter-btn.starred-btn.active { background: var(--star); border-color: var(--star); color: #fff; }
+  .count-badge {
+    font-size: 0.75rem;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* GRID */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+    padding: 1.5rem 2rem 3rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s, opacity 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .card.dimmed { opacity: 0.45; background: var(--dim-bg); }
+  .card.dimmed:hover { opacity: 0.65; }
+  .card.starred { border-color: var(--star); }
+  .card.starred::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--star);
+  }
+
+  .card-header {
+    padding: 1.1rem 1.1rem 0.75rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .card-title-block { flex: 1; min-width: 0; }
+  .card-id { font-size: 0.72rem; color: var(--muted); font-weight: 300; letter-spacing: 0.04em; margin-bottom: 0.2rem; }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+
+  .card-actions { display: flex; gap: 4px; flex-shrink: 0; padding-top: 2px; }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--cream);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn.star-btn.active { background: var(--star-bg); border-color: var(--star); }
+  .icon-btn.dim-btn.active { background: #e0ddd8; border-color: #aaa; }
+
+  /* Tags */
+  .card-tags {
+    padding: 0 1.1rem 0.75rem;
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-weight: 400;
+  }
+  .tag.business { background: #e8f0fb; color: #2a4a8a; }
+  .tag.location { background: var(--green-bg); color: var(--green); }
+
+  .card-meta {
+    padding: 0 1.1rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .meta-row {
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meta-row strong { color: var(--ink); font-weight: 500; }
+
+  /* Description preview */
+  .card-desc {
+    padding: 0 1.1rem 0.75rem;
+    font-size: 0.84rem;
+    color: var(--muted);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .card-desc p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .card-footer {
+    padding: 0.75rem 1.1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .travel-tag {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .view-btn {
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.15s;
+  }
+  .view-btn:hover { text-decoration-color: var(--accent); }
+
+  /* FOCUS / CATEGORY chips */
+  .focus-chips {
+    padding: 0 1.1rem 0.75rem;
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+  .chip {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .chip.y { background: #e8f5ee; color: #1a6635; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card-bg);
+    border-radius: 16px;
+    max-width: 720px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-header {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 1.75rem 2rem 1.5rem;
+    border-radius: 16px 16px 0 0;
+    position: sticky;
+    top: 0;
+  }
+  .modal-id { font-size: 0.75rem; color: #a09890; margin-bottom: 0.3rem; letter-spacing: 0.05em; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; line-height: 1.2; }
+  .modal-subtitle { font-size: 0.85rem; color: #a09890; margin-top: 0.4rem; }
+  .modal-close {
+    position: absolute;
+    top: 1.25rem; right: 1.25rem;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid #444;
+    background: none;
+    color: var(--cream);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: #333; }
+  .modal-body { padding: 1.75rem 2rem; }
+  .modal-section { margin-bottom: 1.75rem; }
+  .modal-section:last-child { margin-bottom: 0; }
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+  .section-text {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: #3a3530;
+  }
+  .modal-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1.5rem;
+  }
+  .info-row { font-size: 0.85rem; }
+  .info-row span { display: block; }
+  .info-row .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2rem; }
+  .focus-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .modal-actions { display: flex; gap: 0.75rem; padding: 0 2rem 1.75rem; }
+  .modal-action-btn {
+    flex: 1;
+    padding: 0.65rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .modal-action-btn.star { background: var(--star-bg); border-color: var(--star); color: #7a5500; }
+  .modal-action-btn.star.active { background: var(--star); color: #fff; }
+  .modal-action-btn.dim { background: var(--cream); color: var(--muted); }
+  .modal-action-btn.dim.active { background: #ddd; color: #555; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 4rem 2rem; color: var(--muted); grid-column: 1/-1; }
+  .empty h3 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.5rem; }
+
+  /* Location map */
+  .location-code {
+    display: inline-block;
+    background: var(--green-bg);
+    color: var(--green);
+    font-size: 0.78rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  /* Starred panel count */
+  .starred-count {
+    font-size: 0.78rem;
+    background: var(--star-bg);
+    color: #7a5500;
+    border: 1px solid #e8cc7a;
+    border-radius: 20px;
+    padding: 0.25rem 0.7rem;
+    display: none;
+  }
+  .starred-count.visible { display: inline-block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Intern <em>Project</em> Browser</h1>
+  <p>April 2026 Demand — ULE / MBA Summer Internship</p>
+  <div class="header-stats">
+    <div class="stat"><strong id="total-count">29</strong>Total projects</div>
+    <div class="stat"><strong id="starred-count-header">0</strong>Starred</div>
+    <div class="stat"><strong id="company-count">2</strong>Companies</div>
+  </div>
+</header>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Search by title, description, team…" oninput="renderGrid()">
+  <select id="filter-company" onchange="onCompanyChange()">
+    <option value="">All companies</option>
+    <option value="Optum">Optum</option>
+    <option value="UnitedHealthcare">UnitedHealthcare</option>
+  </select>
+  <select id="filter-division" onchange="renderGrid()">
+    <option value="">All divisions</option>
+  </select>
+  <button class="filter-btn starred-btn" id="btn-starred" onclick="toggleFilter('starred')">⭐ Starred</button>
+  <button class="filter-btn" id="btn-hide-dimmed" onclick="toggleFilter('hideDimmed')">Hide dimmed</button>
+  <span class="count-badge" id="results-count">29 projects</span>
+  <span class="starred-count" id="starred-pill">0 starred</span>
+</div>
+
+<div id="sync-banner" style="display:none;background:#fdf6e3;border-bottom:1px solid #e8cc7a;padding:0.5rem 2rem;font-size:0.8rem;color:#7a5500;text-align:center;">
+  ⏳ Syncing stars & dims…
+</div>
+<div class="grid" id="grid"><div class="empty"><h3>Loading projects…</h3><p>Fetching your stars and dims from the cloud.</p></div></div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-header">
+      <div class="modal-id" id="m-id"></div>
+      <div class="modal-title" id="m-title"></div>
+      <div class="modal-subtitle" id="m-subtitle"></div>
+      <button class="modal-close" onclick="closeModalBtn()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tags" id="m-tags"></div>
+      <div class="info-grid" style="margin-bottom:1.5rem">
+        <div class="info-row"><span class="label">Company</span><span id="m-company"></span></div>
+        <div class="info-row"><span class="label">Division</span><span id="m-division"></span></div>
+        <div class="info-row"><span class="label">Business</span><span id="m-business"></span></div>
+        <div class="info-row"><span class="label">Location code</span><span id="m-location"></span></div>
+        <div class="info-row"><span class="label">Travel</span><span id="m-travel"></span></div>
+        <div class="info-row"><span class="label">Market group</span><span id="m-market"></span></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Focus areas</div>
+        <div class="focus-row" id="m-focus"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Project description</div>
+        <div class="section-text" id="m-desc"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Key deliverables & success metrics</div>
+        <div class="section-text" id="m-deliverables"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Key stakeholders</div>
+        <div class="section-text" id="m-stakeholders"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Organizational value</div>
+        <div class="section-text" id="m-orgvalue"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">What you'll gain</div>
+        <div class="section-text" id="m-intern"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Skills required</div>
+        <div class="section-text" id="m-skills"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-action-btn star" id="m-star-btn" onclick="modalToggleStar()">⭐ Star this project</button>
+      <button class="modal-action-btn dim" id="m-dim-btn" onclick="modalToggleDim()">👁 Dim (less interested)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LOCATION_MAP = {
+  MN950:'Minneapolis, MN', MN017:'Minnetonka, MN', MN006:'Minneapolis, MN', MN101:'Minneapolis, MN',
+  NC950:'Charlotte, NC', TN950:'Nashville, TN', CA950:'Los Angeles, CA',
+  MA950:'Boston, MA', MA008:'Boston, MA',
+  NY950:'New York, NY', VA950:'Arlington, VA',
+  DC007:'Washington, DC', MD950:'Chevy Chase, MD',
+  IL950:'Chicago, IL', KS950:'Overland Park, KS'
+};
+
+const FOCUS_LABELS = {
+  healthBenefits:'Health Benefits',
+  valueBasedCareDelivery:'Value-Based Care',
+  healthTechnology:'Health Technology',
+  healthFinancialServices:'Health Financial Services',
+  pharmacyServices:'Pharmacy Services'
+};
+
+const PROJECTS = [
+  {id:'N-21260',title:'VBC Pillar – Strategy & Operations',company:'Optum',division:'OH Shared Services',business:'Optum Health Services Admin',market:'Optum',segment:'Optum Health Services',location:'NC950',travel:'No anticipated/required travel at this time. Potential for 1 co-location travel.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'The ULE intern would support one of the strategic transformation efforts as part of the Value-Based Care Pillar within Optum Health. Potential projects include: 1) supporting the development and launch of EHR interoperability solutions with contracted network, 2) development of referral strategy, 3) improving the value proposition for contracted providers, and 4) developing provider performance dashboard reporting. Finalized project would be decided based on the interests and skillsets of the intern.',deliverables:'Dependent on the project selected. Key deliverables will include tracking against the overall team\'s MBOs and completion against the project plan.',stakeholders:'Cross-functional team including colleagues from across Optum and UHC. Critical stakeholders include the VBC Pillar Leadership team, clinical leadership team, risk and value operations team, and technology teams.',orgvalue:'The Value Based Care Pillar is critical to executing on the strategy of Optum Health, particularly related to contracted providers. Over 80% of providers Optum Health works with are contracted. The goal is to continue to drive value for providers and patients and enable care at the right time, right place, and right provider.',internValue:'Excellent opportunity to gain leadership exposure throughout Optum and gain understanding of the broader Optum/UHG enterprise. Gain deeper understanding of value-based care. Harder skillsets include developing financial modeling, project management, strategy and strategic planning, and product management.',skills:'Dependent on project selected.'},
+  {id:'N-21305',title:'Advisory Board Cross-Product Strategy & Management',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'TN950',travel:'Travel not required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'For over 40 years, the Advisory Board has been a leading voice in health care. Join the product and content strategy team to support the management and strategy of flagship products: Research Membership & Events. Drive strategic products to accelerate commercial growth and advance the product roadmap. Sample projects include supporting future innovation plans, developing go-to-market strategies, creating customer value stories, content strategy agenda planning, and cross-channel performance management.',deliverables:'Play a pivotal role driving implementation of product, content strategy, and customer experience workstreams. Provide strategic guidance, conduct research, manage project subsections, and execute key deliverables. KPIs include timeliness, positive stakeholder feedback, advancing and owning workstreams, and strong project management.',stakeholders:'Advisory Board senior leadership (CEO, SVPs), VP team, leadership bench, cross-department teams (product, content strategy, client management, sales), and potentially high-profile executive clients.',orgvalue:'Drive significant growth for the broader Optum Advisory business. Direct impact on the Advisory Board\'s commercial performance by enhancing go-to-market activities. Insights from direct member interactions will inform product design enhancements.',internValue:'Project management, business strategy & analytics, value positioning and go-to-market strategy & messaging, exposure to senior level stakeholders and cross-functional groups, working in a highly matrixed environment.',skills:'Intellectual curiosity, self-starter, ability to lead a project, critical thinking and analytical skills, upward management and communication, comfort with ambiguity, attention to detail. Ideal: previous project management, strategy experience, presentation skills, client-facing experience.'},
+  {id:'N-21314',title:'Digital Search Rollout Plan Associate',company:'Optum',division:'Strategy & Operations',business:'Optum Health Solutions',market:'Optum',segment:'Optum Health Services',location:'MN950',travel:'No travel required.',focus:{healthBenefits:true,valueBasedCareDelivery:false,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Help create a draft rollout plan for extending provider search data insights for UHC Hub and Optum Whole Health Solutions internal products. A new data source (UHC provider search data) is being used to develop more timely insights that a member could be interested in. For example, a member searching for a physical therapist could trigger outreach by Hinge Health for a virtual PT program. The project includes drafting a prioritized roadmap to rollout across many programs, working with Tech teams, clinical rule development, Marketing, Product, and others.',deliverables:'Create a prioritized roadmap for rollout to applicable programs based on product impact and stakeholder capacity.',stakeholders:'Product, WHS clinical governance, Marketing, Technology.',orgvalue:'Help better and earlier identify members who have a health need where a program exists to help meet that need. Close gaps in care, improve enrollment in case rate programs, and improve member experience.',internValue:'Exposure to over 20 different product leaders, UHC Hub digital health vendors, Marketing leaders, and Technology leaders. Experience coordinating business needs with Technical and other capacity and influencing others to gain agreement on a multi-disciplinary plan.',skills:'Strong communication skills and at least adequate project management skills.'},
+  {id:'N-21328',title:'OI Marketing, Payer and State Government',company:'Optum',division:'OptumInsight Marketing',business:'Optum Marketing',market:'Optum',segment:'Cust. Office & Enterprise Mrkt',location:'CA950',travel:'0-15%.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:true,pharmacyServices:false},desc:'The State Government Solutions (SGS) marketing portfolio focuses on positioning Optum as the trusted partner for Medicaid and state agencies, advancing AI-enabled solutions across data & analytics, healthcare access, program operations, and modernization initiatives. The scope includes thought leadership, industry event execution, paid and earned media, omni-channel campaigns, and sales enablement designed to accelerate growth, expand awareness, and support mission-critical state government programs.',deliverables:'Unified AI-forward SGS narrative across campaigns, website, and marketing assets. Omni-channel brand & analytics campaign. High-impact conference strategy. Case studies, thought leadership, and sales enablement. Success measures include 80 MQLs, 600K paid media impressions, 90% engagement of top accounts, high NPS, and performance toward $325M TCV target.',stakeholders:'Payer & State Govt. Marketing Leadership Team, Market Presidents, Payer Product leaders, Marketers.',orgvalue:'Strengthens Optum\'s role as a strategic partner to state governments. Expands market share in a high-need, federally funded sector. Accelerates pipeline for AI-first, data-driven solutions aligned to new state mandates.',internValue:'AI-driven positioning and storytelling in complex regulated government environments. Cross-functional collaboration with Product, Sales, Consulting, and Market teams. Public-sector marketing strategy including association partnerships and policy-aware content. Event strategy and executive-level communication.',skills:'Public-sector marketing expertise (especially Medicaid and HHS). AI, analytics, and modernization fluency. Strong content development & thought-leadership skills. Event strategy and execution. Data-driven performance management. Stakeholder management across internal and external partners.'},
+  {id:'N-21331',title:'B2B Marketing Strategy, Transformation, and Enablement',company:'Optum',division:'OptumInsight Marketing',business:'Optum Marketing',market:'Optum',segment:'Cust. Office & Enterprise Mrkt',location:'NC950',travel:'0-15%.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:true,pharmacyServices:false},desc:'The Strategy, Transformation, and Enablement portfolio drives enterprise-level marketing transformation for Optum Insight and Optum Financial by accelerating marketing maturity, advancing digital and e-commerce maturity, maturing the B2B customer data platform (CDP), strengthening channel partner go-to-market, and embedding AI-driven operational efficiency. Scope includes digital ecosystem optimization, end-to-end demand generation, sales alignment, content strategy, analytics modernization, and workforce globalization.',deliverables:'AI Marketplace maturity & growth; unified digital ecosystem across Optum properties; channel partner GTM model; full launch of B2B CDP; AI-enabled marketing operations including 2+ AI agents; high-performance globalized marketing team. Success: 22× return from CDP activation, 15-20% efficiency gains from AI, $36M pipeline goal for AI Marketplace.',stakeholders:'OI & OF Marketing leadership team, EM&CO leaders, OGA leadership, AI Marketplace leaders, Finance stakeholders.',orgvalue:'Enables Optum to accelerate revenue diversification, scale digital commerce, and position AI as a growth engine. Modernizes digital ecosystem, strengthens channel partnerships, and builds a data-driven marketing foundation.',internValue:'AI adoption and automation exposure. Advanced digital ecosystem design spanning UX, content strategy, and performance analytics. B2B data and CDP activation skills. Global collaboration. Innovation disciplines including rapid experimentation, agile delivery, and modern marketing technology operations.',skills:'AI-first marketing skills (prompt engineering, AI agent workflow design, automation). Digital product & eCommerce expertise. Data & analytics capabilities (CDP fluency, attribution modeling). Partner & ecosystem management. Content strategy & technical storytelling. Operational excellence & global collaboration.'},
+  {id:'N-21349',title:'H&CCD Workforce Strategy Intern',company:'Optum',division:'Shared Services',business:'Home and Community Dept',market:'Optum',segment:'Optum Care Solutions',location:'MN950',travel:'Minimal - 1-2 trips to Optum HQ.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'H&CCD provides in-home and community based care delivery and coordination across all 50 states with over 10K clinicians (NPs, RNs, PAs). This role will be focused on deployment, monitoring and refinement of key workforce pilots to promote productivity and efficiency for HouseCalls and Care At Home programs. Looking for a motivated self-starter to help transform value-based care and design the workforce of the future.',deliverables:'Successful pilot launch, monitoring of key KPIs such as clinician experience, coding effectiveness and accuracy and quality measures. Pilot-based recommendations on approach and future roll out.',stakeholders:'H&CCD Clinical Operations, Product Management and General Managers for HouseCalls and Care At Home.',orgvalue:'Operational effectiveness and in-year productivity goals.',internValue:'Understanding of H&CCD business models and clinical delivery of fee and risk based businesses. Partner to understand clinical models of Advance Practice Clinicians serving MA and DSNP populations.',skills:'Problem solving, critical thinking, effective communication, value based care, Medicare and DSNP product knowledge.'},
+  {id:'N-21373',title:'ULE Summer Intern – Competitive Intelligence',company:'Optum',division:'Optum Health Services Sr Mgmt',business:'Optum Health Services Admin',market:'Optum',segment:'Optum Health Services',location:'MN950',travel:'TBD.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'The Optum Health Corporate Strategy team is defining a new competitive intelligence process to ensure OH strategy leverages key insights from the market. The intern\'s project is to assist in developing the future state competitive intelligence operating model for OH. Various teams develop competitive/market intelligence today, but most serves tactical outcomes versus organizational strategic outcomes. There is a need to define how materials could "bubble up" to clear strategic insights for OH Senior Leadership. With the proliferation of AI, the hypothesis is this process could leverage new technologies that increase speed-to-output.',deliverables:'Mapping of current competitive intel processes across OH; strategically reviewing outputs and determining ways to further strengthen insights; defining a future-state "Market Intelligence Operating System"; identifying where AI/automation could and should play; piloting workflows (earnings synthesis, competitor monitoring) as a proof point.',stakeholders:'Corporate Strategy team (sponsor), Marketing and Finance (to understand current processes), IT (for AI/automation tools).',orgvalue:'The organization will benefit from the development of a competitive intelligence process that has been piloted and can be expanded in the future.',internValue:'Soft skills: how senior leaders utilize market insights to aide strategic decision making; how to lead a cross-functional project across a large, matrixed organization. Hard skills: strategic report generation; KPIs for OH and key competitors.',skills:'Strong communication skills; comfort working cross-functionally; comfort with/interest in technical tools and working with technical teams (for automation applications).'},
+  {id:'N-21385',title:'UHC Hub Product Associate',company:'UnitedHealthcare',division:'E&I - Consumer Office',business:'E&I Consumer Office',market:'UnitedHealthcare',segment:'Employer & Individual',location:'MN950',travel:'Minimal.',focus:{healthBenefits:true,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'UHC Employer and Individual (E&I) serves over 26 million commercial members nationwide. Within E&I, the Growth Office created the UHC Hub — a portfolio of vendors available to offer employees tailored services. The Intern will report directly to Jennifer Yauch and work closely with Hailyn Chun and Ashley Hancock to deliver on the UHC Hub product strategy — a top strategic initiative aligned with the broader E&I strategy of becoming more consumer-oriented.',deliverables:'Identify, establish, and implement frameworks, processes, and tools; gather information from key stakeholders; conduct market research; navigate complex matrices; partner with leadership team to prepare for monthly and quarterly business reviews.',stakeholders:'Jennifer Yauch, Hailyn Chun, Ashley Hancock, Optum Product, Jonathan Vargas.',orgvalue:'The Intern will be part of the key driving force behind the UHC Hub as we evolve the commercial business to become more consumer-centric.',internValue:'Product management lifecycle understanding; consumer insights and analytics; data analysis skills; strong communication development; problem-solving in a complex environment.',skills:'Basic proficiency with Microsoft Excel (formulas, pivot tables, charts); MS Word, PowerPoint, and SharePoint; comfortable working independently; organized and efficient in written and oral communication; able to prioritize and manage multiple stakeholders.'},
+  {id:'N-21400',title:'UHC and Optum CRC',company:'UnitedHealthcare',division:'Consumer Experience Office',business:'CXR',market:'UnitedHealthcare',segment:'UHC Benefit Ops - Consumer Ops',location:'MN017',travel:'Minimal — two trips max to headquarters in Minnetonka, MN.',focus:{healthBenefits:true,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'UnitedHealthcare Consumer Resolution Center (CRC) exists to find individuals in the middle of the worst experiences and resolve their issues end-to-end while fixing underlying root causes for all members. Now expanding these capabilities beyond UHC into Optum, requiring foundational work to stand up new processes, partnerships, and infrastructure. You will help build this capability from the ground up.',deliverables:'Support UHC CRC expansion by analyzing experience signals and preparing insights for senior leaders. Build the Optum CRC from the ground up including defining foundational processes, intake workflows, and case routing. Support enterprise-wide experience improvement initiatives. Build foundational artifacts and operating playbooks. Program management and coordination across clinical, appeals, Rx, Behavioral Health, OFS, and regulatory teams.',stakeholders:'UHC and Optum leadership, Operations & Experience leadership, business partner leadership including clinical, claims, finance, and leaders across Optum in Rx, Behavioral and Financial Services.',orgvalue:'The CRC model partners with 100+ teams across the enterprise to resolve issues quickly and surface systemic friction. Building something foundational that will shape the future of how UHG diagnoses and resolves friction for millions of members.',internValue:'Experience shaping an enterprise-scale expansion. Exposure to the intersection of consumer experience, enterprise operations, and real-time issue detection. Crash course in how the enterprise works, deep relationships across UHC and Optum, and tangible contributions influencing the future service model.',skills:'Strong analytical skills and curiosity; excellent communication and collaboration abilities; comfort working in a fast-paced, high-visibility environment; ability to handle sensitive member-experience-related information with care and professionalism.'},
+  {id:'N-21403',title:'GCO Contact Center Transformation Project Lead',company:'UnitedHealthcare',division:'Consumer Experience Office',business:'CXR',market:'UnitedHealthcare',segment:'UHC Benefit Ops - Consumer Ops',location:'MN017',travel:'Limited.',focus:{healthBenefits:false,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:false,pharmacyServices:true},desc:'Consumer Experience & Resolution (CXR) Team is seeking a dedicated intern to help coordinate key Member Abrasion and Call Obviation Workstream initiatives — part of the enterprise-wide effort to remove $1B in SG&A savings for controllable contact center budgets by 2028. Key focus is to ensure initiatives are delivered on time, within scope, and in coordination with other workstreams and Optum partners.',deliverables:'Create a pipeline of well-defined call obviation pilots, inclusive of CBAs and supporting data analysis. Show obviation results based on deployed pilot programs.',stakeholders:'CXR Experience and Optimization team; CXR Data Analytics Team; Senior Executives part of the GCO workstreams.',orgvalue:'SG&A savings and ability to use data to uncover, define and drive change to member experience, which is abrasive and costly.',internValue:'Ability to use data to uncover, define and drive change to member experience. Experience contributing to high-impact initiatives affecting tens of thousands of members and influencing the product roadmap through strategic remediation.',skills:'Manages ambiguity, communicates with clarity, builds strong partnerships across functions. Growth mindset, resourcefulness, ability to synthesize sensitive information.'},
+  {id:'N-21406',title:'Reporting Product & Agile Operations',company:'UnitedHealthcare',division:'Core Ops Reporting & Insights',business:'Claim Product & Data',market:'UnitedHealthcare',segment:'UHC Benefit Ops - Core Svcs',location:'MN017',travel:'None.',focus:{healthBenefits:false,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'CORI Claim Solutions and the Public Insights Operational Reporting team are seeking an intern to support the transformation toward more modern, agile reporting practices. This role blends elements of both Scrum Master and Product Owner responsibilities across five scrum teams. Responsibilities include refining and maturing the backlog, helping ensure work items reflect business needs, assisting with sprint planning, ceremonies, and workflow organization.',deliverables:'Complete backlog for all teams including 2 Solution Capabilities and 3+ sprints of refined backlog. Support Scrum of Scrums calls including team leaders alignment, management of cross-team dependencies and standardization of processes.',stakeholders:'Christine Dudgeon (manager), Quentin Calder (Sr Director of Capability), Joel Reichert (VP Data Analytics).',orgvalue:'Current resources are operating in a business-as-usual manner with limited adoption of standard BI platforms. This role is intended to support team growth and advance a vision for a more mature, agile operating model.',internValue:'Experience in a lighter technology environment accessible without deep technical expertise. Agile methodologies experience. Product Owner role will reinforce best practices in defining requirements and building a structured backlog.',skills:'Microsoft tools and third-party agile tools.'},
+  {id:'N-21439',title:'Consumer Experience Analytics Intern',company:'UnitedHealthcare',division:'Consumer Experience Office',business:'CXR',market:'UnitedHealthcare',segment:'UHC Benefit Ops - Consumer Ops',location:'MN950',travel:'Minimal.',focus:{healthBenefits:false,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:true,pharmacyServices:false},desc:'Work with real consumer interaction data (calls, chats, app, portal, surveys, and bots) as well as transactional data (claims, prior authorization) to uncover the root causes of consumer friction. Answer questions like: Why do members call repeatedly? Where are self-service digital experiences breaking down? What drives consumer abrasion? Leverage AI-enabled analytics tools and collaborate closely with analysts, data scientists, and operations leaders to translate findings into executive-ready insights.',deliverables:'Root-Cause Analytics Packages identifying top drivers of consumer friction. Experience Insights Dashboards. Executive Storytelling Artifacts — summary decks with problem statements, insights, recommended actions, and quantified benefit sizing. Cross-Functional Research Notes from collaboration with data science and operations teams.',stakeholders:'CRC War Room team, operations, consumer product, and analytics partners.',orgvalue:'Improving consumer experience, accelerating digital-first transformation, enhancing enterprise intelligence, and driving cross-functional alignment.',internValue:'Broad data domain experience with structured and unstructured interaction data. Hands-on data science collaboration with NLP-powered intent labeling, CxS models, and omnichannel intelligence. Executive visibility. Applied analytics & storytelling. Professional development in a high-performing analytics culture.',skills:'Analytical proficiency using SQL, Python, R, or similar tools. Data visualization experience (Power BI, Tableau). Ability to work with large datasets. Strong problem-solving and critical-thinking abilities. Ability to translate data insights into clear business recommendations. Strong communication and executive storytelling capabilities.'},
+  {id:'N-21874',title:'Whole Health Solutions Channel Strategy Intern',company:'Optum',division:'Strategy & Operations',business:'Optum Health Solutions',market:'Optum',segment:'Optum Health Services',location:'MA950',travel:'This team is fully remote. Travel will not be required.',focus:{healthBenefits:true,valueBasedCareDelivery:false,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Whole Health Solutions sells behavioral health and clinical products to four channels: employers, government (Medicaid and Medicare), payers, and providers. The intern will be an integrated member of the Whole Health Solutions Product Strategy and Operations team, reporting to the Director of Channel Strategy. Complete 1-2 projects focused on driving growth and/or profit for a specific business channel, with high visibility to senior leadership.',deliverables:'By the end of the internship, craft a thorough argument and recommendation to influence senior leaders on where Whole Health Solutions should play next to meet growth targets. Interview internal stakeholders, conduct market research, collect and analyze data, draw conclusions, and create a PowerPoint deck summarizing the recommendation with supporting evidence.',stakeholders:'Bret Marlowe (Director of Channel Strategy), Laura Buss (Director of Strategy and Market Intelligence), Cody Cargill (VP of Strategy), Alejandro Lievano (Director of Product Strategy and Innovation), Whole Health Solutions Product and Channel leaders.',orgvalue:'The intern will enhance the team\'s capacity to evaluate additional opportunities that can directly translate into additional revenue and profit. Supports Optum\'s ability to improve member outcomes, better meet member needs, retain existing customers, and win new business.',internValue:'Learn to navigate and thrive in a highly matrixed role. Develop relationships within a core business of OptumHealth. Learn about a new market in the health care industry. Gain visibility from and opportunity to impress senior leaders. Manager formerly completed the ULE internship and rotational program.',skills:'Highly driven and self-motivated; comfortable with ambiguity; excellent communication skills; able to influence senior leaders; curious and learns unfamiliar subjects quickly; resilient; superior critical thinking, analytical skills, and business acumen; strong collaboration.'},
+  {id:'N-21913',title:'Enterprise Strategy and Partnerships',company:'Optum',division:'Strategy',business:'Enterprise Strategy',market:'Optum',segment:'Optum Corporate',location:'MN950',travel:'10-15%.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:true,pharmacyServices:true},desc:'ULE interns in the past have typically been assigned 1 project consisting of high-visibility partnership explorations or strategy engagements. Specific partnership or strategic engagement not yet identified for summer 2026, but example ULE projects of the past include: 1) Amazon partnership exploration, 2) Early Stage Venture Capital Engagement, 3) Palantir partnership exploration, 4) Health System partnership exploration, 5) AI transformation strategy.',deliverables:'ULEer will fill a role similar to an associate-type role on a consulting team — accountable for strategic thinking, analysis, internal and external stakeholder engagement, content development, etc.',stakeholders:'ULEer will work in tandem with a 30-31 level project lead and a 32-SVP level senior executive. This group will engage with multiple internal and external senior leaders to advance strategy and partnerships.',orgvalue:'Strategic partnerships and broader strategic engagements under the leadership of Jason Patten help advance UHG\'s goals across all five strategic pillars and help position UHG to be successful in an ever-changing healthcare landscape.',internValue:'ULEer will significantly expand knowledge base with projects touching essentially every part of the UHG organization. Develop skills around executive engagement, problem framing and solutioning, building coalitions across a large and politically complex organization, and creating win-win partnerships. Significantly expand the breadth of your UHG leader network.',skills:'Problem framing, analysis and solution generation, content development (telling a story with a presentation), executive communication, project management, organizational navigation.'},
+  {id:'N-22024',title:'Strategy Consultant – Project Athena',company:'Optum',division:'Strategy',business:'Enterprise Strategy',market:'Optum',segment:'Optum Corporate',location:'MN101',travel:'Minimal to no travel required.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:true,pharmacyServices:true},desc:'Project Athena is an enterprise knowledge and AI product housed within the UHG Strategy team, designed to serve as a "front door" to trusted answers for enterprise executives and select corporate teams. Its purpose is to help leaders quickly access vetted narratives, metrics, and supporting evidence. This summer, as Athena actively onboards users and scales adoption, the ULE resource will play a hands-on role in supporting that rollout — tracking onboarding progress, gathering feedback from "super users," and translating insights into practical improvements.',deliverables:'A structured onboarding and adoption tracking framework; regular summaries of user feedback and friction themes; updated enablement materials (FAQs and quick-start guidance); a concise end-of-summer insights brief with recommendations for improving adoption and user experience.',stakeholders:'Athena Product Lead, Project Manager/Operations Lead, Product Experience & Design Lead, Content Management Lead, and designated super users from Corporate Strategy, Corporate Communications, and External & Government Affairs.',orgvalue:'Strengthens the organization\'s ability to respond to complex, high-visibility questions with speed, consistency, and confidence. Improves onboarding, adoption, and feedback loops. Builds a sustainable, trusted "front door" to enterprise insights.',internValue:'Hands-on experience at the intersection of product management, enterprise strategy, AI-enabled tools, and organizational change. Practical skills in stakeholder engagement, feedback synthesis, analytics and reporting, process design, and executive communication.',skills:'Strong analytical and critical thinking skills; strong written and verbal communication; comfort with spreadsheets or basic data tracking tools; attention to detail; curiosity and initiative; interest in product management, AI-enabled tools, knowledge management, or enterprise strategy.'},
+  {id:'N-22048',title:'Product Design Traditional Medicare APMs, Optum Health Payer',company:'Optum',division:'Optum Health Services Sr Mgmt',business:'Optum Health Services Admin',market:'Optum',segment:'Optum Health Services',location:'NY950',travel:'Little to no travel. May require 1-2 trips.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'The Optum Health Payer team owns, drives and optimizes Optum Health\'s payer portfolio of value-based contracts across payers and products. As a ULEr, you will own and lead critical initiatives building out Optum Health\'s Traditional Medicare APMs like MSSP and LEAD (the replacement for ACO REACH), involving strategic assessment, opportunity analysis, and operations for Optum Health\'s National MSSP ACO.',deliverables:'Strategic assessment and impact analysis of recently released CMS Innovation Center alternative payment models (e.g., LEAD, ACCESS). Opportunity assessment and recommendations for the existing Medicare Original product portfolio. Strategic operations for Optum Health\'s National MSSP ACO. Partner with Payer leadership to execute critical strategic initiatives. Success measured by ability to deliver against OKRs tailored to the project.',stakeholders:'Julie Spalding (Sr. Director), Stephen Fernandez (Sr Director), Shawn Schaefer (VP), Holly Steinbrecher (SVP). Also works with Strategic Finance, Network, Healthcare Economics, Core Ops/Technology, and Clinical Ops.',orgvalue:'Directly aligned to Optum Health\'s priority objective to stabilize value-based care. Highly visible to leaders in Optum Health and UHG. Work impacts >300K beneficiaries and ~$200M in gross margin.',internValue:'Learn the discipline of working across teams to create and bring a strategy to life. Learn end-to-end levers that influence value-based care. Navigate ambiguity and pivot when necessary. Learn technical skills like population data analysis for market sizing, financial analysis of benefit design on premium, and what value-based care means from a financial and clinical perspective.',skills:'Self-starter; strategic thinker and seasoned influencer with demonstrated ability to drive consensus at all levels including senior executive leadership; comfort analyzing large data sets; high level organizational and project management skills; ability to quickly grasp complex concepts.'},
+  {id:'N-22060',title:'Intern, Health Conditions Domain – OptumRx Strategy & Product',company:'Optum',division:'OptumRx Business Ops',business:'OptumRx Product & Strategy',market:'Optum',segment:'OptumRx',location:'VA950',travel:'Minimal to no travel required.',focus:{healthBenefits:false,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:false,pharmacyServices:true},desc:'OptumRx uses a proprietary cloud-hosted enterprise platform (nicknamed OPQ) to track and trend multiple event types across all OptumRx lines of business. There is an opportunity to extend this capability across other Optum/UHG segments and the external market. This project is focused on market opportunity exploration to advance the platform\'s growth roadmap via opportunity definition, market sizing, business case build and competitive research.',deliverables:'Staggered outputs of an initial discovery portfolio (Project deep dive, user experience mapping, market sizing, opportunity identification, internal/external solutions mapping) and product concepts with recommendations for development, ideally completed by end of rotation.',stakeholders:'Senior Level Sponsor: Oron Stenesh (VP, OptumRx Strategy & Product). Hiring Manager: Chuka Ndukauba (Senior Director, OptumRx Strategy & Product).',orgvalue:'Targeted to contribute materially to OptumRx\'s enterprise financial goals for FY 2026, 2027 and beyond, and potentially represents a sizable portion of OptumRx\'s roadmap for growth.',internValue:'Build a solid understanding of the product development process. Cross-OptumRx and cross-Optum collaboration, exposure to essential Optum capabilities. Product development expertise across competitive analysis, primary and secondary research, commercialization strategies and business case build. Institutional knowledge on pharmacy care services. Influencing without authority.',skills:'Analytical skills / data-driven decision-making; effective communication skills (verbal, written, visual) appropriate for executive-level audiences; building relationships; ability to organize disparate opportunities and work with ambiguity; curiosity, willingness to act decisively.'},
+  {id:'N-22208',title:'Optum Advisory – Provider Consulting Business Development',company:'Optum',division:'Advisory Services Provider',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'DC007',travel:'Not required, but potential opportunity to engage in in-person lead gen activities if local to DC or Nashville offices.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Join the business development team that sits across all consulting practices to support the management and strategy of go-to-market lead generation activities. A new team created to support and create strategic activities that will funnel leads and grow each practice. Collaborate closely with the Provider Tech, Clinical, and RMI Actuarial Consulting practices.',deliverables:'Play a pivotal role driving strategy creation and execution of multiple lead generation workstreams within the consulting practices. Provide strategic guidance, partner with key stakeholders, manage project subsections, and execute key deliverables. KPIs include timeliness, positive feedback, advancing and owning workstreams.',stakeholders:'Optum Advisory leadership (CEO, SVPs, VP team), cross-department teams (business development, consulting practices, client solutioning, sales, marketing). Daily manager: Brenna Neidlinger (Director of Strategic Growth).',orgvalue:'Key component to OA\'s overall growth strategy and execution. Significant role in GTM campaign creation and execution, lead generation creation and process workflow. Direct impact on commercial performance.',internValue:'Project and process management; commercial strategy; business strategy & analytics; value positioning and go-to-market strategy & messaging; exposure to senior level stakeholders; cross-functional experience in strategy, marketing & business development.',skills:'Intellectual curiosity, self-starter, ability to lead a project, critical thinking and analytical skills, strong communication, comfort with ambiguity, attention to detail. Ideal: project management experience, strategy experience, presentation skills, client-facing experience.'},
+  {id:'N-22211',title:'Advisory Board: Internal Growth Strategy (MD)',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'MD950',travel:'None required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Join a high performing internal partnerships team responsible for serving UnitedHealth Group (UHG) — Advisory Board\'s largest and most strategically important client. Collaborate with leaders across AB\'s commercial sales, client services, marketing, and operations teams to execute the 2026 strategic plan: growing Advisory Board\'s brand awareness internally, identifying high value partnership opportunities, and helping partners in the Markets and Growth Office to drive outsized value.',deliverables:'Internal market analysis and refining target persona strategy; evaluating and accelerating the internal sales process; developing internal materials (case study slides, one-pagers, scripting/talking points) to drive utilization of services. KPIs include timeliness, positive stakeholder feedback, thoughtful deliverables, and strong project management.',stakeholders:'Advisory Board and Internal Partnerships leadership; leaders and key stakeholders across UHG, UHC, and Optum; Finance leadership across various enterprise businesses; colleagues on the AB team.',orgvalue:'Advisory Board serves as an important internal vendor across Optum, UHC, and UHG — providing best-in-class research, leader development, and custom insights. The ULEr ensures organizational colleagues are equipped to pursue the collective goal of making healthcare better for everyone.',internValue:'Direct client management and sales experience; project management; greater understanding of Optum\'s solutions and capabilities, as well as Advisory Board\'s research; exposure to various parts of the enterprise (client management, sales, renewals, consulting).',skills:'Demonstrated success in building strong relationships; excellent communication, negotiation, and interpersonal skills; strong analytical and strategic thinking; Salesforce proficiency; strong attention to detail; proven ability to prioritize across multiple projects; experience translating business and sales goals into actionable campaigns.'},
+  {id:'N-22214',title:'Advisory Board: Internal Growth Strategy (MD2)',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'MD950',travel:'None required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Advisory Board has been a leading voice in health care for 40+ years. Join a high performing internal partnerships team responsible for serving UnitedHealth Group (UHG). Opportunities to collaborate closely with leaders across AB\'s commercial sales, client services, marketing, and operations teams to execute the 2026 strategic plan focused on growing Advisory Board\'s brand awareness internally and identifying high value partnership opportunities.',deliverables:'Internal market analysis; evaluating and accelerating the internal sales process; developing internal materials to drive utilization of services. KPIs include timeliness, positive stakeholder feedback, providing thoughtful and strategic deliverables, and demonstrating strong project management skills.',stakeholders:'Advisory Board and Internal Partnerships leadership; leaders and key stakeholders across UHG, UHC, and Optum; Finance leadership; Colleagues and peers on the AB team.',orgvalue:'Advisory Board serves as an important internal vendor across Optum, UHC, and UHG — providing best-in-class research, leader development, and custom insights.',internValue:'Direct client management and sales experience; project management; greater understanding of Optum\'s solutions and capabilities; exposure to various parts of the enterprise (client management, sales, renewals, consulting).',skills:'Demonstrated success in building strong relationships; excellent communication, negotiation, and interpersonal skills; strong analytical and strategic thinking; Salesforce proficiency; attention to detail; proven ability to prioritize across multiple projects; experience translating business and sales goals into actionable campaigns.'},
+  {id:'N-22229',title:'Advisory Board Life Sciences Research and Content Strategy',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'DC007',travel:'No travel required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'Advisory Board\'s life sciences-focused research team is evolving content strategy to align with changing needs of life sciences executives around AI and health plan strategy. Join the team to dive into understanding the needs and challenges of life sciences commercial leaders, apply analytical rigor to identify key insights, develop and test potential formats for executive-ready publications, and thoughtfully deploy enterprise AI tools to enhance process efficiency and Advisory Board\'s ability to scale content reach and impact.',deliverables:'Create a dossier of life sciences commercial leader challenges and priorities related to key topic areas. Use that dossier, along with AI tools, to create a suite of quick-read publications designed to help executive audiences quickly understand what they need to know and actions they can take. Approximately 5 publications to be delivered.',stakeholders:'Advisory Board leadership (VPs overseeing research, product and content strategy), cross-department teams, Advisory Board clients, Daily manager: Regina Lohr (Managing Director, Life Sciences, Pharmacy & Diagnostics Research), Executive sponsor: Jared Landis (VP, Research).',orgvalue:'Directly supports Advisory Board\'s ability to deliver differentiated value to life sciences organizations including leading pharmaceutical and medical device manufacturers. By helping life sciences leaders better understand other stakeholders, furthers Optum\'s mission.',internValue:'Project management experience; hands-on exposure to Advisory Board research and insight generation process; practical application of AI tools to support research synthesis, audience targeting, and content generation; exposure to senior stakeholders and cross-functional partners; experience working in a highly matrixed, intellectually rigorous environment.',skills:'Intellectual curiosity, self-starter, ability to lead a project, critical thinking and analytical skills, excellent written communication skills especially for business audiences, comfort with ambiguity, attention to detail. Ideal: research experience, client-facing experience, healthcare organization experience, AI tools experience.'},
+  {id:'N-22235',title:'Executive Intelligence Manager',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'DC007',travel:'No required travel.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'The executive intelligence manager ULE internship will focus on the design, preparation, and execution of Advisory Board\'s inaugural in-person gathering of its new Executive Research Council — a cohort of C-suite leaders from all parts of the healthcare industry who have committed to sharing candid perspectives on their roles. The ULEr will also act as a central connector across research teams, policy experts, and leadership forums, elevating shared understanding of "what matters now" in health care.',deliverables:'Help convene and facilitate dialogue among C-suite leaders; draft outputs from the launch Council meeting; author AB articles based on discussions; support content development for council meetings; schedule individual council member conversations; ensure event registration logistics; maintain updated roster of council members; monitor council member engagement; capture feedback on work-in-progress research.',stakeholders:'Managing director of the Executive Research Council, research leaders and staff, product strategy and operations staff, client relations managers, and marketing leaders.',orgvalue:'Play a pivotal role in flagship research initiatives and ongoing guidance to help external clients and Optum colleagues understand, plan for, and adapt to big changes in the healthcare market.',internValue:'This is a visible, execution-heavy role with meaningful strategic exposure. Frequent personal interactions with senior Advisory Board leaders along with interactions with external industry executives — a "front row seat" to strategic discussions of the most pressing issues facing healthcare. Opportunity to explore strategic concepts, troubleshoot operational challenges, and build written and oral communication skills.',skills:'Strong analytical generalist who can manage complex inputs from multiple teams, identify patterns across policy, payment, delivery, and technology trends, and engage confidently with senior stakeholders. The role demands independent execution and facilitation of internal and external meetings resulting in deliverables that drive research forward.'},
+  {id:'N-22238',title:'Product Strategy Consultant – Sponsorship',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'VA950',travel:'None required.',focus:{healthBenefits:false,valueBasedCareDelivery:false,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Supports the development and execution of a cohesive sponsorship product strategy designed to strengthen market positioning, improve pricing clarity, and enhance post-sale delivery and client experience. Conduct market and competitive analysis to assess current sponsorship pricing structures and value propositions, support external marketing efforts by contributing to campaign development, and design and optimize post-sale workflows using Smartsheet.',deliverables:'Completed pricing and competitive analysis with clear, actionable recommendations; improved clarity of sponsorship messaging across supported campaigns; implementation of Smartsheet-based post-sale workflows; reduction in manual handoffs and process ambiguity; on-time delivery of all agreed-upon outputs.',stakeholders:'Lindsay Pavone (Sponsorship owner and director), Maddie Martucci (Custom research owner and director), Miriam Sznycer-taub (Custom research director), Ruby Tialavea (Sponsorship account manager).',orgvalue:'Directly contributing to a $6,000,000 product goal that aims to grow over the next years. Pricing strategy analysis will directly impact future sponsorship and custom deliverables and capacity needs to maintain revenue growth.',internValue:'Hands-on experience at the intersection of product strategy, marketing, and operations. Top key skills: Product and Pricing Strategy, Marketing Strategy and Performance Analysis, Operational and Workflow Design, Cross-Functional Collaboration, Transferable Consulting Skills.',skills:'Ability to conduct market and competitive analysis; comfort evaluating pricing structures and value propositions; familiarity with external marketing concepts; ability to interpret basic marketing engagement metrics; experience mapping and improving operational processes (desired); Smartsheet proficiency (desired); strong written and verbal communication; strong organizational skills.'},
+  {id:'N-22244',title:'Director Corporate Strategy',company:'Optum',division:'Strategy',business:'Enterprise Strategy',market:'Optum',segment:'Optum Corporate',location:'MA008',travel:'Minimal travel on as-needed basis for project work and quarterly team meeting (<10%).',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:true,pharmacyServices:true},desc:'The ULE intern will take ownership of a project, just as the directors on the team do. Because project staffing is just-in-time, the exact project is not yet determined. Example past projects: Develop an enterprise perspective on the Provider Enablement market and build a business plan for Optum to enter; Work with UHC to develop a strategy around premium designation of in-network providers; Evaluate new opportunities across strategic priorities such as Health Equity, Affordability, Rural Health; Support Optum Insight leadership team to re-energize their RCM strategy; Support Optum Financial Services to advance key priorities.',deliverables:'Own and deliver key activities required to execute the project — including analyzing data, conducting internal/external research, summarizing findings, communicating across stakeholders, preparing and delivering executive-level read-outs. Work effectively and collaboratively across teammates and all stakeholder groups.',stakeholders:'Corporate Strategy team members; project team and manager; executive sponsor of project work (enterprise and/or business unit).',orgvalue:'Work is directly aligned to the strategic growth pillars of UHG and/or white space growth opportunities for the enterprise. The ULEr will be directly involved in project work, driving forward the enterprise priorities of UHG.',internValue:'Exposure to an enterprise-level view of the organization; work on the frontier of enterprise growth/strategic direction; build a network across multiple business units; exposure to enterprise senior leadership.',skills:'Comfort with ambiguity; complex problem solving; ability to communicate across multiple stakeholders both through verbal and written communication; executive presence; develop key findings from large amounts of data/research.'},
+  {id:'N-22250',title:'Life Sciences Partnerships',company:'Optum',division:'Life Sciences Operations',business:'OI Other Business',market:'Optum',segment:'OptumInsight',location:'MA950',travel:'Minimal. Highly supportive of opportunities to meet with teams in Boston, Minneapolis, or Washington DC.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:true},desc:'This internship will support Optum Life Sciences (OLS) as it explores emerging growth opportunities at the intersection of real-world data, research enablement, and collaboration with other Optum businesses (Optum Health, OptumRx, Optum Insight, optum.ai). Opportunities may include new research platforms, differentiated data assets, and novel ways of partnering with care delivery to support life sciences customers across evidence generation, clinical research, and long-term innovation.',deliverables:'Executive-ready materials summarizing one or more strategic growth opportunities. Clear articulation of use cases and value propositions relevant to life sciences customers. Business-case inputs and/or financial models outlining value drivers, cost categories, and key sensitivities. High-level assessment of operating, governance, and compliance considerations. A structured decision framework to support leadership prioritization.',stakeholders:'Optum Life Sciences partnership, strategy, and BU leadership; other Optum BU clinical and strategy partners; legal, compliance, and research governance stakeholders; data, analytics, and technology leaders supporting OLS initiatives.',orgvalue:'Supports OLS leadership in evaluating and prioritizing new growth opportunities. Improves strategic alignment between OLS and other Optum businesses. Informs investment decisions with clearer views on economics, risks, and feasibility.',internValue:'Exposure to enterprise-level strategy and innovation within life sciences; hands-on experience building early-stage business cases and financial models; opportunity to work on ambiguous, high-impact problems with senior visibility; experience collaborating across strategy, clinical, legal, and data teams.',skills:'Strategic problem solving and analytical thinking; financial modeling and business-case development; ability to synthesize complex inputs into executive-level narratives; comfort with ambiguity and evolving problem statements; strong written and verbal communication; interest in life sciences, healthcare data, or research-enabled businesses.'},
+  {id:'N-22253',title:'Advisory Board Research and AI Innovation',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'VA950',travel:'No travel required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Join the Advisory Board research team to support the management and strategy of research efforts, quantitative insights projects, and ongoing business performance. Drive strategic initiatives to accelerate the impact of research in the external market as well as with internal colleagues. Sample projects include innovating and supporting implementation of AI advancements to research processes and product, building the framework for a new resource management process, and supporting key research improvement efforts.',deliverables:'Two main projects: 1) Innovating with research teams to become AI-enabled in work product as well as embedding AI into client-facing deliverables. 2) Upgrading resource planning systems and frameworks to better manage expert capacity across diverse research projects. Additional support for quarterly business reviews and quality improvement efforts. KPIs include timeliness, positive feedback, advancing and owning workstreams, and strong project management.',stakeholders:'Advisory Board senior leadership (CEO, SVPs), VP team, research leaders and team members, cross-department teams (content strategy, client management, sales, Optum Advisory partners). Daily manager: Shay Pratt (VP of Research). General manager: Joel Whitaker.',orgvalue:'Drive significant growth for the broader Optum Advisory business. Work on Advisory Board research will have a direct impact on commercial performance by enhancing the value of research, quantitative insights, and deliverables for members.',internValue:'Project management; business strategy & analytics; value positioning and go-to-market strategy & messaging; exposure to senior level stakeholders and cross-functional groups; working in a highly matrixed environment.',skills:'Intellectual curiosity, self-starter, ability to lead a project, critical thinking and analytical skills, upward management, comfort with ambiguity, attention to detail. Ideal: project management experience, strategy experience, presentation or analytical experience, client-facing experience.'},
+  {id:'N-22259',title:'Medical Documentation Simplification – Business Transformation and Strategy',company:'UnitedHealthcare',division:'PI Provider Performance Office',business:'Payment Integrity Ops',market:'UnitedHealthcare',segment:'UHC Benefit Ops - Provider Svc',location:'MD950',travel:'Not required, but there may be occasional on sites with the working team.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'Medical Documentation Simplification (MDS) is a foundational capital program within UHC Payment Integrity and a critical enabler of enterprise AI strategic initiatives. By significantly increasing the volume and quality of electronic medical records, MDS establishes the clinical data foundation required to advance a claim-free future state. Through a multi-year transformation, MDS is standardizing UHC managed tools and processes for the solicitation, submission, routing, and storage of medical documentation to improve cost, quality, and experience outcomes.',deliverables:'Business Process & Operating Model Analysis — support analysis of current-state documentation workflows to identify inefficiencies and contribute to clearly defined improvement opportunities. Performance Reporting & Insights — support compilation and organization of performance data and assist with building or refining simple reporting views. Governance & Leadership Support — assist with preparation of leadership-ready materials, including status updates, performance summaries, and initiative tracking.',stakeholders:'PI Clinical Operations, Provider Experience, Product, Technology, Legal, Finance, and external vendor partners.',orgvalue:'Accelerates UHC\'s ability to scale medical documentation capabilities by centralizing and digitizing end-to-end documentation workflows. Strengthens operating model efficiency, reduces process and cost friction, enables integrated performance oversight. Establishes the clinical data foundation required to support AI-enabled reviews and future claim-free reimbursement models.',internValue:'Business process & operating model analysis skills; data analysis & insight generation; executive communication & storytelling; program & execution fundamentals; cross-functional collaboration; enterprise & healthcare acumen including payment integrity, medical documentation strategy, and AI.',skills:'Analytical & problem solving skills; data & quantitative comfort with Excel; written & verbal communication; business acumen & learning agility; collaboration & stakeholder engagement; organization & attention to detail; working knowledge of PowerPoint and Excel.'},
+  {id:'N-22262',title:'Innovation and Strategy – New Product Development (Violet)',company:'Optum',division:'Optum Enterprise Solutions',business:'Optum Corporate',market:'Optum',segment:'Optum Corporate',location:'MN101',travel:'Limited — approximately two business trips over the course of the internship (Minnesota + one other location).',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'Violet is building advanced sensing and intelligence capabilities to help translate real-world activity into actionable insights. This summer MBA internship will center on a high-impact strategic project supporting the market development and commercialization of an emerging platform. The intern will help define where the solution can create the most value, which customer segments and use cases to prioritize, and how Violet should approach positioning, partnerships, and go-to-market execution.',deliverables:'Assess priority markets, customer segments, and use cases; develop a view of the competitive landscape and differentiation opportunities; recommend elements of Violet\'s commercialization and go-to-market strategy; deliver an executive-level final presentation with actionable recommendations.',stakeholders:'Hamilton Shawn, Andrea Chasin, Laura Shirley, Dr. Lawrence Garber.',orgvalue:'Advances Violet\'s work at the intersection of innovation, technology, and AI. Supports the strategy for how emerging sensing solutions can be applied to meaningful real-world needs. Aligns with a broader commitment to helping people live healthier lives.',internValue:'Exposure to a strategic, enterprise-wide initiative at the forefront of cutting-edge technology, AI, product development, and go-to-market strategy. Experience in market and customer analysis, product and commercialization strategy, cross-functional collaboration, and executive-level communication.',skills:'Strong strategic thinking, structured problem-solving, and analytical capabilities; comfortable evaluating markets and business opportunities; strong communication and collaboration skills; curiosity about innovation, emerging technology, AI, product development; ability to operate in an ambiguous environment. Experience with market research, competitive analysis, or executive-level presentation development helpful.'},
+  {id:'N-22268',title:'OH Transformation Summer Intern',company:'Optum',division:'Optum Health Services Sr Mgmt',business:'Optum Health Services Admin',market:'Optum',segment:'Optum Health Services',location:'CA950',travel:'No travel required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'This project focuses on evaluating the market competitiveness of select Optum Health products, which today primarily serve UnitedHealthcare (UHC). The work will assess how these products compare to external competitors, how well they align with Optum Care and external health plans, and what it would take for them to be best-in-class in the broader marketplace. The project includes internal stakeholder engagement, external competitor research, service-level and capability comparisons, and outcome/quality benchmarking.',deliverables:'Summary of internal stakeholder insights for priority products; external competitor landscape for top products (capabilities, positioning, differentiation); service-level and capability comparison between Optum and key competitors; external benchmarking of outcomes and quality metrics where available; final synthesis with insights and recommendations for next steps.',stakeholders:'WHS and H&CCD product and business leaders; Optum Care clinical and operational leaders (CDOs); strategy and growth partners across Optum; select subject-matter experts supporting outcomes, quality, and service design.',orgvalue:'Gain a clearer view of how OH offerings perform relative to the external market; identify gaps that limit broader adoption beyond UHC; inform future product strategy, investment priorities, and integration efforts; support a more enterprise-oriented, market-driven approach to product design and positioning.',internValue:'Build experience in healthcare product strategy and competitive analysis; develop skills in stakeholder interviewing, synthesis, and executive communication; gain exposure to Optum\'s care delivery, product, and payer ecosystem; strengthen analytical thinking and problem-solving in a real-world, ambiguous business context.',skills:'Strong qualitative and quantitative analytical skills; ability to conduct structured research and synthesize complex information; clear written and verbal communication skills; comfort working with ambiguity and incomplete data; basic understanding of healthcare delivery, payer/provider dynamics, or product strategy (preferred but not required).'},
+  {id:'N-22274',title:'Community & State – Strategy & Planning',company:'UnitedHealthcare',division:'C&S Executive',business:'C&S Executive Admin',market:'UnitedHealthcare',segment:'Community & State',location:'MN006',travel:'Very limited — MN HQ presence would be great to maximize exposure opportunity.',focus:{healthBenefits:true,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'Community and State\'s mission is to serve roughly 7.2 million Medicaid and dually eligible (Medicaid + Medicare) members. Medicaid covers ~20% of the U.S. population and 40% of all births. The C&S Strategy & Planning team supports the executive leadership team by helping set and execute business strategy. Scope includes annual business planning, performance monitoring, internal and external reporting, business and competitive intelligence, and other priority strategic initiatives.',deliverables:'Directly contribute to business-critical, executive-facing deliverables within your project. This generally includes strategic analyses (financial models, market research and synthesis, build/buy/partner assessments), executive-level reporting and presentations, and ad hoc support for broader S&P activities. Primary success metrics: meeting delivery expectations for the assigned project, collaborating effectively, and contributing positively to team performance and culture.',stakeholders:'C&S Executive leadership team; National C&S senior functional leaders; Local C&S market leaders; Cross-UHC line of business and shared service partners.',orgvalue:'S&P\'s scope is aligned to enterprise-level priorities that directly support C&S\'s mission. The work informs leadership decision making and helps ensure continued delivery for the 7.2M+ members served across 32 markets.',internValue:'Leave with a strong understanding of the C&S business and how strategic decisions are developed and executed. Visibility into how strategy is developed at the highest levels of the enterprise. Exposure to senior leadership. Experience on a team designed to serve as a launching pad for future C&S leaders.',skills:'Strong strategic acumen and systems thinking; intellectual curiosity, comfort with ambiguity, and collaborative working style; high performers and self-starters focused on results; ability to influence across a matrixed organization. Desired: financial acumen (banking, M&A, consulting experience), proficiency with Microsoft Office, track record of delivering executive-ready content.'},
+  {id:'N-22387',title:'Advisory Board Client Services Specialist',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'MD950',travel:'No travel required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'Participate as a member of the Client Services team, supporting relationships with healthcare executives at client organizations and ensuring they fully understand and effectively use Advisory Board resources. The team builds strategic relationships with executives and end users at member organizations, thoughtfully tailoring recommendations based on the organization\'s strategic priorities. This role focuses on delivering high-quality service, proactively monitoring and increasing membership utilization, and translating research and market insights into tailored recommendations that drive client value.',deliverables:'High-quality service delivery to a defined portfolio of clients; value-driven client interactions (calls, visits, follow-ups) with clear recommendations and executed next steps; tailored partnership roadmaps; proactive utilization management; accurate and complete relationship documentation in Salesforce and Teams; scalable outreach initiatives; strong cross-functional collaboration.',stakeholders:'Executives and end users at client organizations; Client Services leadership team; Client Services account team (Executive Advisor & Associate); product teams; research and content teams.',orgvalue:'Driving member retention and expansion through strong utilization and demonstrated ROI; translating research into action; protecting data integrity; extending Advisory Board impact through proactive outreach; strengthening Advisory Board\'s reputation as a trusted, value-added partner.',internValue:'Direct support of client relationships and visible impact on client success; development of consultative, executive-facing communication skills; deep exposure to healthcare markets, trends, and institutional decision-making; opportunities to build content expertise across Advisory Board research offerings; experience working autonomously.',skills:'Relationship management and client communication (including executive audiences); consultative recommendation-building; time and priority management across multiple accounts; Salesforce relationship and data management; MS Excel (sorting, filtering, data entry, basic analysis); MS Word and Outlook; virtual and in-person meeting management. Soft skills: detail-oriented, clear and confident communication, goal- and outcome-oriented mindset, proactive problem-solving.'},
+  {id:'N-22390',title:'Health Plan Research Consultant, Advisory Board',company:'Optum',division:'Advisory Board Research',business:'OI Advisory and Implementation',market:'Optum',segment:'OptumInsight',location:'VA950',travel:'No travel required.',focus:{healthBenefits:false,valueBasedCareDelivery:true,healthTechnology:false,healthFinancialServices:false,pharmacyServices:false},desc:'This role sits within Advisory Board\'s health plan research team and focuses on one of the most urgent questions facing payer executives today: how health plans should adopt AI models and solutions to improve efficiency and address core operational challenges. The work blends literature review, qualitative research, executive interviews, and synthesis into discussion-oriented content designed to inform real leadership decisions. The ULEr will support the development of a client-ready strategy deck to be used in C-suite strategy retreats.',deliverables:'Completion of a client-ready executive strategy deck; leading or co-leading qualitative interviews with health plan stakeholders; contribution to a companion thought leadership paper; positive qualitative feedback and NPS from a client webinar or executive session; demonstrated ownership of workstreams.',stakeholders:'Advisory Board senior leadership (VPs overseeing research, product and content strategy), cross-department teams, Optum subject matter experts (payer operations and AI experts across Optum Insight and Optum Advisory), Advisory Board clients (health plan executives — C-suite and VP level). Daily manager: Sally Kim (Managing Director, Health Plan, Research). Executive sponsor: Jared Landis (VP, Research).',orgvalue:'Directly supports Advisory Board\'s ability to deliver timely, executive-level insight to health plan leaders on a top strategic priority. The strategy deck produced will create a platform for meaningful discussions between Advisory Board/Optum subject matter experts and health plan executives.',internValue:'Exposure to senior health plan executives and payer VPs; hands-on experience with qualitative research and executive interviews; development of executive storytelling and slide building skills; opportunities to lead portions of client-facing work; experience working in a highly matrixed, research-driven environment.',skills:'Intellectual curiosity and comfort with ambiguity; health plan or payer industry exposure; qualitative research and interview synthesis skills; literature review and insight extraction; strong presentation and slide-building capabilities; clear written and verbal communication. Open to individuals from a variety of professional backgrounds including research, strategy, consulting, or health care-related roles.'},
+  {id:'N-22417',title:'Associate Strategic Account Executive',company:'Optum',division:'Healthcare Payments Network',business:'Optum Financial',market:'Optum',segment:'OI Optum Financial',location:'IL950',travel:'0-15%.',focus:{healthBenefits:true,valueBasedCareDelivery:false,healthTechnology:true,healthFinancialServices:true,pharmacyServices:false},desc:'Remediation Plan or 1/1 Readiness: Drives 3-5 workstreams to goals/milestones in partnership with OFS leads/PM. Executive/Business Reporting: Develops and produces executive-level reporting and overviews for UHC/OI/OFS deliverables, measurement, and reporting.',deliverables:'Remediation plan; program/account plan; IRAD; team charter; client servicing playbook; executive level reporting and overviews.',stakeholders:'Client, Client Servicing/Account Management, Operations, Product Development and Management, Network, Data and Analytics.',orgvalue:'Retain and grow the business by being the easiest and best vendor partner/operator.',internValue:'Being part of a mission, vision, goal-oriented team with stated goals for the next year or two to achieve with clients. Business strategy; program/project management; data and analysis.',skills:'Problem solving and execution; strategic thinker; program management and execution.'},
+  {id:'N-22429',title:'Technology Solutions Design – Business Development Intern',company:'Optum',division:'OI Growth',business:'OptumInsight Executive',market:'Optum',segment:'OptumInsight',location:'KS950',travel:'Travel required: 0-20%.',focus:{healthBenefits:true,valueBasedCareDelivery:true,healthTechnology:true,healthFinancialServices:false,pharmacyServices:false},desc:'A Business Development intern on the Technology Solution Design team will support the development of healthcare IT solutions that align technology capabilities with clinical, operational, and business needs. Working alongside experienced solution designers and business development leaders, the intern will contribute to solution design, analysis, and documentation efforts in support of client pursuits and strategic initiatives.',deliverables:'Support Active Client Pursuits through development of solution content and support of high-level solution design activities. Learning and professional development demonstrating growth in technical and AI literacy, healthcare industry knowledge. Innovation and Continuous Improvement — recommendations to support IT offering evolution, solution design team processes, and AI adoption.',stakeholders:'Technology Solution Design Team, broader Solution Design Team (Revenue Cycle Management, Clinical solutions, Engagement Management Office), Provider Technology Solutions Delivery teams, Product organization, Finance partners.',orgvalue:'Expands Technology Solution Design Pursuit Capacity. Fresh perspective on Technology Solutioning and Innovation. Future Leadership Development in Healthcare Technology.',internValue:'Direct contribution to Technology Solution Design efforts supporting active client pursuits. Cross-functional coordination across the TSD team, delivery, Product, and Finance. Key skill development in healthcare, IT, and solution design. Networking opportunities across leadership. Strong foundation for future roles in healthcare technology or consulting.',skills:'Structured thinking and problem solving; clear written communication; healthcare and technology curiosity; rapid learning and adaptability; collaboration and stakeholder skills; attention to detail; initiative and accountability; executive presence and professional maturity; business and financial acumen; innovative mindset.'}
+];
+
+let activeFilters = { starred: false, hideDimmed: false };
+let currentModalId = null;
+
+const BIN_ID = '69f3c423856a68218990c880';
+const API_KEY = '$2a$10$lhiZzja8rTjqXSiNFJvDgObeZO884oA7guRSQSvEQuColXOaBYP9S';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+
+let _state = { starred: {}, dimmed: {} };
+let _saveTimer = null;
+
+async function loadState() {
+  try {
+    const res = await fetch(BIN_URL + '/latest', {
+      headers: { 'X-Access-Key': API_KEY }
+    });
+    const data = await res.json();
+    _state = data.record || { starred: {}, dimmed: {} };
+  } catch(e) {
+    console.warn('Could not load state from JSONBin, using empty state.', e);
+    _state = { starred: {}, dimmed: {} };
+  }
+  renderGrid();
+  updateHeaderStats();
+}
+
+function getState() { return _state; }
+
+function saveState(state) {
+  _state = state;
+  renderGrid();
+  updateHeaderStats();
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    const banner = document.getElementById('sync-banner');
+    if(banner) banner.style.display = 'block';
+    try {
+      await fetch(BIN_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Access-Key': API_KEY },
+        body: JSON.stringify(state)
+      });
+    } catch(e) { console.warn('Could not save state to JSONBin.', e); }
+    if(banner) banner.style.display = 'none';
+  }, 600);
+}
+
+function toggleStar(id, e) {
+  if(e) e.stopPropagation();
+  const state = getState();
+  state.starred[id] = !state.starred[id];
+  if(!state.starred[id]) delete state.starred[id];
+  saveState({...state});
+}
+function toggleDim(id, e) {
+  if(e) e.stopPropagation();
+  const state = getState();
+  state.dimmed[id] = !state.dimmed[id];
+  if(!state.dimmed[id]) delete state.dimmed[id];
+  saveState({...state});
+}
+
+function toggleFilter(key) {
+  activeFilters[key] = !activeFilters[key];
+  document.getElementById('btn-' + (key === 'starred' ? 'starred' : 'hide-dimmed')).classList.toggle('active', activeFilters[key]);
+  renderGrid();
+}
+
+function updateHeaderStats() {
+  const state = getState();
+  const starred = Object.values(state.starred).filter(Boolean).length;
+  document.getElementById('starred-count-header').textContent = starred;
+  const pill = document.getElementById('starred-pill');
+  if(starred > 0) { pill.textContent = starred + ' starred'; pill.classList.add('visible'); }
+  else { pill.classList.remove('visible'); }
+}
+
+function populateDivisionFilter() {
+  const sel = document.getElementById('filter-division');
+  sel.innerHTML = '<option value="">All divisions</option>';
+  const companies = ['Optum', 'UnitedHealthcare'];
+  companies.forEach(co => {
+    const divs = [...new Set(PROJECTS.filter(p => p.company === co).map(p => p.division))].sort();
+    const grp = document.createElement('optgroup');
+    grp.label = co === 'Optum' ? '— Optum —' : '— UnitedHealthcare —';
+    grp.dataset.company = co;
+    divs.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d; o.dataset.company = co;
+      grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+  });
+}
+
+function onCompanyChange() {
+  const co = document.getElementById('filter-company').value;
+  const sel = document.getElementById('filter-division');
+  const currentDiv = sel.value;
+  sel.querySelectorAll('optgroup').forEach(grp => {
+    const match = !co || grp.dataset.company === co;
+    grp.querySelectorAll('option').forEach(o => {
+      o.disabled = !match;
+    });
+  });
+  const selectedOpt = sel.querySelector('option[value="' + currentDiv + '"]');
+  if(currentDiv && selectedOpt && selectedOpt.disabled) { sel.value = ''; }
+  renderGrid();
+}
+
+function renderGrid() {
+  const state = getState();
+  const search = document.getElementById('search').value.toLowerCase();
+  const co = document.getElementById('filter-company').value;
+  const div = document.getElementById('filter-division').value;
+
+  let visible = PROJECTS.filter(p => {
+    if(activeFilters.starred && !state.starred[p.id]) return false;
+    if(activeFilters.hideDimmed && state.dimmed[p.id]) return false;
+    if(co && p.company !== co) return false;
+    if(div && p.division !== div) return false;
+    if(search) {
+      const hay = [p.id, p.title, p.company, p.division, p.desc, p.skills, p.internValue, p.stakeholders].join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('results-count').textContent = visible.length + ' project' + (visible.length !== 1 ? 's' : '');
+  updateHeaderStats();
+
+  const grid = document.getElementById('grid');
+  if(visible.length === 0) {
+    grid.innerHTML = '<div class="empty"><h3>No projects found</h3><p>Try adjusting your filters or search.</p></div>';
+    return;
+  }
+
+  const starred = Object.keys(state.starred).filter(k => state.starred[k]);
+  const dimmed = Object.keys(state.dimmed).filter(k => state.dimmed[k]);
+
+  visible.sort((a, b) => {
+    const as = state.starred[a.id] ? 1 : 0;
+    const bs = state.starred[b.id] ? 1 : 0;
+    return bs - as;
+  });
+
+  grid.innerHTML = visible.map(p => {
+    const isStar = !!state.starred[p.id];
+    const isDim = !!state.dimmed[p.id];
+    const loc = LOCATION_MAP[p.location] || p.location;
+    const focuses = Object.entries(p.focus).filter(([k,v]) => v).map(([k]) => FOCUS_LABELS[k]);
+
+    return `
+    <div class="card${isStar ? ' starred' : ''}${isDim ? ' dimmed' : ''}" onclick="openModal('${p.id}')">
+      <div class="card-header">
+        <div class="card-title-block">
+          <div class="card-id">${p.id}</div>
+          <div class="card-title">${p.title}</div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn star-btn${isStar ? ' active' : ''}" onclick="toggleStar('${p.id}', event)" title="${isStar ? 'Remove star' : 'Star this project'}">⭐</button>
+          <button class="icon-btn dim-btn${isDim ? ' active' : ''}" onclick="toggleDim('${p.id}', event)" title="${isDim ? 'Un-dim' : 'Dim (less interested)'}">👁</button>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag business">${p.company}</span>
+        <span class="tag location">📍 ${loc}</span>
+      </div>
+      <div class="card-meta">
+        <span class="meta-row">🏢 <strong>${p.division}</strong></span>
+        <span class="meta-row">📂 ${p.business}</span>
+      </div>
+      <div class="card-tags" style="padding-top:0">
+        ${focuses.slice(0,2).map(f => `<span class="tag">${f}</span>`).join('')}
+      </div>
+      <div class="card-desc"><p>${p.desc}</p></div>
+      <div class="card-footer">
+        <span class="travel-tag">✈ ${p.travel.length > 45 ? p.travel.substring(0,45)+'…' : p.travel}</span>
+        <button class="view-btn">View all details →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModal(id) {
+  const p = PROJECTS.find(x => x.id === id);
+  if(!p) return;
+  currentModalId = id;
+  const state = getState();
+  const isStar = !!state.starred[id];
+  const isDim = !!state.dimmed[id];
+
+  document.getElementById('m-id').textContent = p.id;
+  document.getElementById('m-title').textContent = p.title;
+  document.getElementById('m-subtitle').textContent = p.division + ' · ' + p.business;
+  document.getElementById('m-company').textContent = p.company;
+  document.getElementById('m-division').textContent = p.division;
+  document.getElementById('m-business').textContent = p.business;
+  document.getElementById('m-location').innerHTML = `<span class="location-code">${p.location}</span> — ${LOCATION_MAP[p.location] || p.location}`;
+  document.getElementById('m-travel').textContent = p.travel;
+  document.getElementById('m-market').textContent = p.market;
+
+  const focuses = Object.entries(p.focus).filter(([k,v]) => v).map(([k]) => FOCUS_LABELS[k]);
+  document.getElementById('m-focus').innerHTML = focuses.length
+    ? focuses.map(f => `<span class="chip y">${f}</span>`).join('')
+    : '<span style="font-size:0.85rem;color:var(--muted)">Not specified</span>';
+
+  document.getElementById('m-tags').innerHTML = `
+    <span class="tag business">${p.company}</span>
+    <span class="tag business" style="background:#f3e8fb;color:#6a2a8a">${p.segment}</span>
+    <span class="tag location">📍 ${LOCATION_MAP[p.location] || p.location}</span>`;
+
+  document.getElementById('m-desc').innerHTML = p.desc.replace(/\n/g,'<br>');
+  document.getElementById('m-deliverables').innerHTML = p.deliverables.replace(/\n/g,'<br>');
+  document.getElementById('m-stakeholders').innerHTML = p.stakeholders.replace(/\n/g,'<br>');
+  document.getElementById('m-orgvalue').innerHTML = p.orgvalue.replace(/\n/g,'<br>');
+  document.getElementById('m-intern').innerHTML = p.internValue.replace(/\n/g,'<br>');
+  document.getElementById('m-skills').innerHTML = p.skills.replace(/\n/g,'<br>');
+
+  const starBtn = document.getElementById('m-star-btn');
+  const dimBtn = document.getElementById('m-dim-btn');
+  starBtn.textContent = isStar ? '⭐ Starred!' : '⭐ Star this project';
+  starBtn.classList.toggle('active', isStar);
+  dimBtn.textContent = isDim ? '👁 Currently dimmed — click to restore' : '👁 Dim (less interested)';
+  dimBtn.classList.toggle('active', isDim);
+
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modal-inner').scrollTop = 0;
+}
+
+function modalToggleStar() {
+  if(!currentModalId) return;
+  toggleStar(currentModalId);
+  openModal(currentModalId);
+}
+function modalToggleDim() {
+  if(!currentModalId) return;
+  toggleDim(currentModalId);
+  openModal(currentModalId);
+}
+
+function closeModal(e) {
+  if(e.target === document.getElementById('modal')) closeModalBtn();
+}
+function closeModalBtn() {
+  document.getElementById('modal').classList.remove('open');
+  currentModalId = null;
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeModalBtn();
+});
+
+populateDivisionFilter();
+loadState();
+</script>
+</body>
+</html>
