@@ -580,13 +580,20 @@ function saveState(state) {
   _saveTimer = setTimeout(async () => {
     const banner = document.getElementById('sync-banner');
     if(banner) banner.style.display = 'block';
+    console.log('Attempting Firebase save to:', FB_URL);
+    console.log('Data being saved:', JSON.stringify(state));
     try {
-      await fetch(FB_URL, {
+      const res = await fetch(FB_URL, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state)
       });
-    } catch(e) { console.warn('Could not save state to Firebase.', e); }
+      console.log('Firebase response status:', res.status);
+      const text = await res.text();
+      console.log('Firebase response body:', text);
+    } catch(e) {
+      console.error('Firebase save FAILED:', e);
+    }
     if(banner) banner.style.display = 'none';
   }, 600);
 }
