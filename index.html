@@ -251,12 +251,13 @@
     color: var(--muted);
     line-height: 1.55;
     flex: 1;
+  }
+  .card-desc p {
     display: -webkit-box;
-    -webkit-line-clamp: 6;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .card-desc .fmt-p, .card-desc .fmt-list { color: var(--muted); font-size: 0.84rem; }
 
   .card-footer {
     padding: 0.75rem 1.1rem;
@@ -681,28 +682,49 @@ function onCompanyChange() {
   renderGrid();
 }
 
+function plainText(text) {
+  if(!text) return '';
+  // Strip bullet markers and collapse to plain readable text
+  return text
+    .replace(/\n+/g, ' ')
+    .replace(/•\s*/g, ' ')
+    .replace(/ – /g, ' ')
+    .replace(/ - (?=[A-Z])/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function formatText(text) {
   if(!text) return '';
 
-  // Step 1: Split on newlines first, then split each line further on inline • bullets
-  const rawLines = text.split(/\n/);
+  // Step 1: Normalize all bullet/separator styles into newline + bullet marker
+  let t = text;
+
+  // Convert " – CapitalWord" inline dash separators into newline bullets
+  // e.g. "intro text – Strategic Planning: do thing – Policy: do thing"
+  // Only split on " – " followed by a capital letter (to avoid splitting mid-sentence em-dashes)
+  t = t.replace(/ – (?=[A-Z])/g, '\n• ');
+
+  // Convert " - CapitalWord" inline dash separators the same way
+  t = t.replace(/ - (?=[A-Z])/g, '\n• ');
+
+  // Now split into lines and handle inline • separators
+  const rawLines = t.split(/\n/);
   const lines = [];
+
   rawLines.forEach(line => {
     const trimmed = line.trim();
     if(!trimmed) { lines.push(''); return; }
-    // If line contains inline bullets like "intro text • item1 • item2"
-    // split on • that are NOT at the very start of the line
+
     if(trimmed.includes('•')) {
-      // Split on • (allowing optional space before/after)
       const parts = trimmed.split(/\s*•\s*/);
       parts.forEach((part, i) => {
         const p = part.trim();
         if(!p) return;
-        // First part: if it doesn't look like a bullet item itself (ends with : or is a lead-in), treat as paragraph
         if(i === 0 && parts.length > 1 && !trimmed.startsWith('•')) {
-          lines.push(p); // lead-in paragraph
+          lines.push(p); // lead-in text before first bullet
         } else {
-          lines.push('• ' + p); // bullet item
+          lines.push('• ' + p);
         }
       });
     } else {
@@ -710,7 +732,7 @@ function formatText(text) {
     }
   });
 
-  // Step 2: Render lines into HTML
+  // Step 2: Render into HTML
   let html = '';
   let inList = false;
 
@@ -720,11 +742,11 @@ function formatText(text) {
       if(inList) { html += '</ul>'; inList = false; }
       return;
     }
-    const isBullet = /^[•\-\*]\s/.test(trimmed) || /^\d+[.)\)]\s/.test(trimmed);
+    const isBullet = /^[•]/.test(trimmed) || /^\d+[.)\)]\s/.test(trimmed);
     if(isBullet) {
       if(!inList) { html += '<ul class="fmt-list">'; inList = true; }
-      const content = trimmed.replace(/^[•\-\*]\s+/, '').replace(/^\d+[.)\)]\s+/, '');
-      html += '<li>' + content + '</li>';
+      const cnt = trimmed.replace(/^•\s*/, '').replace(/^\d+[.)\)]\s+/, '');
+      html += '<li>' + cnt + '</li>';
     } else {
       if(inList) { html += '</ul>'; inList = false; }
       html += '<p class="fmt-p">' + trimmed + '</p>';
@@ -799,7 +821,7 @@ function renderGrid() {
       <div class="card-tags" style="padding-top:0">
         ${focuses.slice(0,2).map(f => `<span class="tag">${f}</span>`).join('')}
       </div>
-      <div class="card-desc">${formatText(p.desc)}</div>
+      <div class="card-desc"><p>${plainText(p.desc)}</p></div>
       <div class="card-footer">
         <span class="travel-tag">✈ ${p.travel.length > 45 ? p.travel.substring(0,45)+'…' : p.travel}</span>
         <button class="view-btn">View all details →</button>
